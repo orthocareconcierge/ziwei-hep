@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<!--
+=======================================================================
+  ORTHOCARE CONCIERGE LLC : HOME EXERCISE PROGRAM (HEP) TEMPLATE
+  Version: 3.0 (draft)
+
+  HOW TO USE: everything you edit is in the DATA BLOCK near the top
+  of the script section below.
+
+  The program has TWO sections:
+    - DAILY     : the patient does ALL of these every day. The green
+                  checks clear automatically each new day. When all
+                  daily exercises are checked, the day is logged
+                  automatically (it counts toward the streak).
+    - ROTATION  : the patient picks 3-4 of these per day and checks
+                  them off. Checks CARRY OVER day to day. The list
+                  resets only when every exercise has been checked.
+                  Each completed rotation adds to the rotation count.
+
+  Each exercise:
+    - name  : exercise name
+    - rx    : prescription, e.g. "3 x 12" or "Hold 30 sec"
+    - log   : false = check-off only.  true = also shows a logging
+              dropdown for reps / load / sets.
+    - video : '' for now. Later, a filename like 'clamshell.mp4'
+              with that file dropped into the GitHub repo.
+    - cues  : array of coaching cue strings
+
+  DO NOT EDIT the CSS or JavaScript functions. Edit only the data block.
+
+  PROPRIETARY · OrthoCare Concierge LLC | Kelly Davis
+=======================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OC | HEP">
+<title>Home Exercise Program | OrthoCare Concierge</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Jost:wght@300;400;500;600&display=swap');
+
+:root {
+  --gold: #C9A84C;
+  --gold-light: #E2C97E;
+  --gold-dark: #9A7A2E;
+  --black: #111111;
+  --charcoal: #1E1E1E;
+  --dark: #252525;
+  --mid: #3A3A3A;
+  --muted: #D0D0D0;
+  --light: #F5F3EF;
+  --white: #FFFFFF;
+  --red: #C0392B;
+  --green: #27AE60;
+  --yellow: #F39C12;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Jost', sans-serif;
+  background: var(--black);
+  color: var(--white);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===================== SPLASH ===================== */
+#splash {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px 60px;
+  background: linear-gradient(160deg, var(--charcoal) 0%, var(--black) 60%);
+  position: relative;
+  overflow: hidden;
+}
+#splash::before {
+  content: '';
+  position: absolute;
+  top: -100px; right: -100px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(201,168,76,0.10) 0%, transparent 70%);
+  pointer-events: none;
+}
+.header-block { text-align: center; margin-bottom: 10px; width: 100%; }
+.provider-line {
+  font-size: 11px; font-weight: 400; letter-spacing: 0.18em;
+  color: var(--gold); text-transform: uppercase; margin-bottom: 18px;
+}
+.oc-header { display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+.gold-line { width: 48px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); margin: 18px auto; }
+.client-hero { text-align: center; margin-bottom: 36px; }
+.client-hero h1 {
+  font-family: 'Cormorant Garamond', serif; font-size: 44px; font-weight: 300;
+  color: var(--white); letter-spacing: 0.02em; line-height: 1.1;
+}
+.client-hero .subtitle {
+  font-size: 10px; font-weight: 400; letter-spacing: 0.3em;
+  color: var(--gold); text-transform: uppercase; margin-top: 10px;
+}
+.nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 380px; }
+.nav-card {
+  background: var(--charcoal); border: 1px solid rgba(201,168,76,0.18);
+  border-radius: var(--radius); padding: 20px 14px; text-align: center;
+  cursor: pointer; transition: all 0.22s ease; position: relative; overflow: hidden;
+}
+.nav-card::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--gold-dark), var(--gold-light));
+  transform: scaleX(0); transition: transform 0.22s ease;
+}
+.nav-card:active { border-color: var(--gold); transform: translateY(-1px); }
+.nav-card:active::after { transform: scaleX(1); }
+.nav-icon { font-size: 22px; margin-bottom: 7px; display: block; }
+.nav-card h3 { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--white); margin-bottom: 3px; }
+.nav-card p { font-size: 10px; color: var(--muted); font-weight: 300; }
+.proprietary-line {
+  font-size: 9px; color: var(--muted); text-align: center; margin-top: 28px;
+  letter-spacing: 0.12em; line-height: 1.7; font-weight: 300; padding: 0 16px;
+}
+
+/* ===================== PAGES ===================== */
+.page { display: none; min-height: 100vh; background: var(--black); padding-bottom: 90px; }
+.page.active { display: block; }
+.page-header {
+  background: linear-gradient(135deg, var(--charcoal), var(--dark));
+  padding: 52px 20px 22px; border-bottom: 1px solid rgba(201,168,76,0.13); position: relative;
+}
+.back-btn {
+  position: absolute; top: 14px; left: 14px; background: none; border: none;
+  color: var(--gold); font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 400;
+  letter-spacing: 0.06em; cursor: pointer; padding: 8px 4px; display: flex; align-items: center; gap: 5px;
+}
+.page-header h2 { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 300; color: var(--white); }
+.page-header .page-sub { font-size: 10px; letter-spacing: 0.22em; color: var(--gold); text-transform: uppercase; margin-top: 5px; font-weight: 400; }
+.page-content { padding: 20px 14px; }
+.section-label {
+  font-size: 9px; font-weight: 500; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 10px; margin-top: 24px; padding-left: 2px;
+}
+.section-label:first-child { margin-top: 0; }
+.card { background: var(--charcoal); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+.card-gold { border-color: rgba(201,168,76,0.22); background: linear-gradient(135deg, var(--charcoal), rgba(201,168,76,0.04)); }
+.intro-card p { font-size: 12px; color: var(--muted); line-height: 1.7; font-weight: 300; }
+
+/* progress pill */
+.prog-pill {
+  display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--gold); background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.22); border-radius: 20px; padding: 6px 13px; margin-bottom: 12px;
+}
+.prog-pill.complete { color: var(--green); border-color: rgba(39,174,96,0.4); background: rgba(39,174,96,0.10); cursor: pointer; }
+
+/* ===================== TABS ===================== */
+.tab-row { display: flex; gap: 7px; margin-bottom: 16px; }
+.tab-btn {
+  flex: 1; background: var(--charcoal); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px; padding: 9px 16px; font-family: 'Jost', sans-serif; font-size: 10px;
+  font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted);
+  cursor: pointer; transition: all 0.18s;
+}
+.tab-btn.active { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); border-color: var(--gold); color: var(--black); }
+
+/* ===================== EXERCISE CARDS ===================== */
+.exercise-card { background: var(--charcoal); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); margin-bottom: 9px; overflow: hidden; transition: border-color 0.2s; }
+.exercise-card.done-card { border-color: rgba(39,174,96,0.32); }
+.exercise-header { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+.ex-check {
+  width: 26px; height: 26px; border: 2px solid var(--gold); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  cursor: pointer; transition: all 0.18s;
+}
+.ex-check.done { background: var(--green); border-color: var(--green); }
+.ex-check.done::after { content: '\2713'; font-size: 14px; font-weight: 600; color: var(--white); }
+.exercise-info { flex: 1; cursor: pointer; }
+.exercise-name { font-size: 13px; font-weight: 500; color: var(--white); letter-spacing: 0.03em; margin-bottom: 2px; }
+.exercise-meta { font-size: 12px; color: var(--gold); font-weight: 500; letter-spacing: 0.04em; }
+.exercise-chevron { color: var(--muted); font-size: 11px; transition: transform 0.18s; flex-shrink: 0; cursor: pointer; padding: 4px; }
+.exercise-card.open .exercise-chevron { transform: rotate(180deg); }
+.exercise-body { display: none; padding: 0 14px 14px; border-top: 1px solid rgba(255,255,255,0.06); }
+.exercise-card.open .exercise-body { display: block; }
+
+/* video slot: appears only when an exercise has a video filename set */
+.exercise-video { margin: 12px auto 0; border-radius: var(--radius-sm); overflow: hidden; background: #000; max-width: 280px; }
+.exercise-video video { width: 100%; max-height: 70vh; display: block; }
+
+.cue-box { background: var(--dark); border-radius: var(--radius-sm); padding: 11px; margin-top: 12px; }
+.cue-box h5 { font-size: 8px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold); margin-bottom: 7px; }
+.cue-box ul { padding-left: 13px; }
+.cue-box li { font-size: 12px; color: var(--muted); line-height: 1.6; font-weight: 300; margin-bottom: 2px; }
+
+/* logging block */
+.log-section { margin-top: 12px; background: var(--dark); border-radius: var(--radius-sm); padding: 11px; }
+.log-section h5 { font-size: 8px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold); margin-bottom: 9px; }
+.log-col-headers { display: grid; grid-template-columns: 44px 1fr 1fr; gap: 6px; margin-bottom: 4px; }
+.log-col-headers span { font-size: 8px; color: var(--muted); text-align: center; letter-spacing: 0.1em; text-transform: uppercase; }
+.set-row { display: grid; grid-template-columns: 44px 1fr 1fr; gap: 6px; align-items: center; margin-bottom: 5px; }
+.set-label { font-size: 10px; color: var(--muted); font-weight: 400; }
+.log-input {
+  background: var(--charcoal); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;
+  padding: 9px 6px; font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white);
+  text-align: center; width: 100%; -webkit-appearance: none;
+}
+.log-input:focus { outline: none; border-color: var(--gold); }
+.log-input::placeholder { color: var(--muted); font-size: 10px; }
+.add-set-btn {
+  background: none; border: 1px dashed rgba(201,168,76,0.28); border-radius: 6px; color: var(--gold);
+  font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 400; letter-spacing: 0.1em;
+  padding: 8px; width: 100%; cursor: pointer; margin-top: 5px;
+}
+.notes-input {
+  background: var(--dark); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;
+  padding: 9px; font-family: 'Jost', sans-serif; font-size: 12px; color: var(--white);
+  width: 100%; resize: none; min-height: 52px; margin-top: 11px; font-weight: 300;
+}
+.notes-input:focus { outline: none; border-color: var(--gold); }
+.notes-input::placeholder { color: var(--muted); }
+
+/* ===================== BUTTONS ===================== */
+.export-btn {
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold-light)); border: none;
+  border-radius: var(--radius); padding: 15px 20px; font-family: 'Jost', sans-serif;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--black); width: 100%; cursor: pointer; margin-top: 14px;
+}
+.export-btn:active { opacity: 0.83; transform: scale(0.98); }
+.save-btn {
+  background: var(--charcoal); border: 1px solid var(--gold); border-radius: var(--radius);
+  padding: 13px 20px; font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); width: 100%;
+  cursor: pointer; margin-top: 10px;
+}
+.save-btn:active { opacity: 0.8; }
+
+/* ===================== RESET OVERLAY ===================== */
+.reset-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.78); display: flex; align-items: flex-end; z-index: 300; padding: 20px; }
+.reset-box { background: var(--charcoal); border: 1px solid var(--gold); border-radius: var(--radius); padding: 22px; width: 100%; }
+.reset-box h3 { font-family: 'Cormorant Garamond', serif; font-size: 23px; font-weight: 300; color: var(--white); margin-bottom: 10px; }
+.reset-box p { font-size: 12px; color: var(--muted); margin-bottom: 18px; font-weight: 300; line-height: 1.6; }
+.reset-btns { display: flex; gap: 10px; }
+.reset-btns button { flex: 1; border-radius: 8px; padding: 13px; font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.reset-yes { background: var(--green); border: none; color: var(--white); }
+.reset-no { background: var(--charcoal); border: 1px solid rgba(255,255,255,0.15); color: var(--muted); }
+
+/* ===================== CONSISTENCY GRID ===================== */
+.streak-row { display: flex; gap: 7px; margin-bottom: 18px; }
+.streak-stat { flex: 1; background: var(--charcoal); border: 1px solid rgba(201,168,76,0.18); border-radius: var(--radius); padding: 13px 4px; text-align: center; }
+.streak-num { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 300; color: var(--gold); line-height: 1; }
+.streak-lbl { font-size: 7.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+.grid-wrap { overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+.grid-wrap::-webkit-scrollbar { display: none; }
+.grid-inner { display: flex; gap: 3px; }
+.grid-daylabels { display: flex; flex-direction: column; gap: 3px; margin-right: 6px; }
+.grid-daylabels span { height: 14px; font-size: 8px; color: var(--muted); display: flex; align-items: center; font-weight: 500; }
+.grid-col { display: flex; flex-direction: column; gap: 3px; }
+.grid-cell { width: 14px; height: 14px; border-radius: 3px; background: var(--dark); }
+.grid-cell.pre { background: transparent; }
+.grid-cell.future { background: rgba(255,255,255,0.025); border: 1px dashed rgba(201,168,76,0.30); }
+.grid-cell.done { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); }
+.grid-cell.today { box-shadow: 0 0 0 1.6px var(--gold-light); }
+.grid-legend { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 9px; color: var(--muted); letter-spacing: 0.06em; }
+.grid-legend .lg-cell { width: 11px; height: 11px; border-radius: 3px; }
+
+/* ===================== HISTORY ===================== */
+.history-card { background: var(--charcoal); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); padding: 13px 14px; margin-bottom: 7px; }
+.history-date { font-size: 9px; color: var(--gold); letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 4px; }
+.history-title { font-size: 14px; font-weight: 400; color: var(--white); }
+.history-note { font-size: 12px; color: var(--muted); margin-top: 6px; font-weight: 300; line-height: 1.5; }
+.log-entry { background: var(--charcoal); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 7px; }
+.log-entry .le-head { font-size: 13px; font-weight: 500; color: var(--white); margin-bottom: 2px; }
+.log-entry .le-when { font-size: 9px; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 7px; }
+.log-entry .le-set { font-size: 12px; color: var(--muted); font-weight: 300; line-height: 1.6; }
+
+/* ===================== GOALS ===================== */
+.goal-item { display: flex; gap: 13px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.goal-item:last-child { border-bottom: none; }
+.goal-number { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 300; color: var(--gold); line-height: 1; min-width: 30px; margin-top: 1px; }
+.goal-text h4 { font-size: 13px; font-weight: 500; letter-spacing: 0.05em; margin-bottom: 4px; color: var(--white); }
+.goal-text p { font-size: 12px; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+/* ===================== PRECAUTIONS ===================== */
+.precaution-card { background: var(--charcoal); border-radius: var(--radius); padding: 13px 14px; margin-bottom: 7px; border-left: 3px solid var(--red); }
+.precaution-card.yellow { border-left-color: var(--yellow); }
+.precaution-card h4 { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 7px; color: #E74C3C; }
+.precaution-card.yellow h4 { color: var(--yellow); }
+.precaution-card li { font-size: 12px; color: var(--muted); line-height: 1.6; font-weight: 300; }
+.precaution-card ul { padding-left: 13px; }
+
+/* ===================== BOTTOM NAV ===================== */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; background: rgba(17,17,17,0.96);
+  backdrop-filter: blur(20px); border-top: 1px solid rgba(201,168,76,0.13);
+  display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-nav-btn { flex: 1; background: none; border: none; padding: 11px 4px 9px; cursor: pointer; text-align: center; }
+.bottom-nav-btn .nav-ico { font-size: 18px; display: block; margin-bottom: 3px; }
+.bottom-nav-btn .nav-lbl { font-size: 8px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: block; }
+
+/* ===================== TOAST ===================== */
+.toast {
+  position: fixed; bottom: 78px; left: 14px; right: 14px; background: var(--charcoal);
+  border: 1px solid var(--gold); border-radius: var(--radius); padding: 13px 14px;
+  font-size: 12px; color: var(--white); z-index: 200; transform: translateY(16px);
+  opacity: 0; transition: all 0.28s ease; pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-state p { font-size: 13px; font-weight: 300; line-height: 1.6; }
+
+/* ===================== PRINTABLE LOG REPORT ===================== */
+#print-area {
+  background: #FBF9F4; color: #1E1B16; border-radius: var(--radius);
+  padding: 26px 22px; margin-top: 14px; font-weight: 300;
+}
+.rep-logo { display: block; margin: 0 auto 14px; width: 160px; height: auto; }
+.rep-title { text-align: center; font-size: 10px; letter-spacing: 0.26em; text-transform: uppercase; color: #9A7A2E; font-weight: 600; }
+.rep-client { text-align: center; font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 300; color: #1E1B16; margin: 5px 0 2px; }
+.rep-sub { text-align: center; font-size: 10px; color: #8A8270; letter-spacing: 0.08em; margin-bottom: 4px; }
+.rep-rule { height: 1px; background: linear-gradient(90deg, transparent, #C9A84C, transparent); margin: 16px 0; }
+.rep-stats { display: flex; gap: 6px; }
+.rep-stat { flex: 1; text-align: center; background: #F2EDE1; border-radius: 8px; padding: 11px 4px; }
+.rep-stat b { display: block; font-family: 'Cormorant Garamond', serif; font-size: 25px; font-weight: 400; color: #9A7A2E; }
+.rep-stat span { font-size: 7.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #8A8270; }
+.rep-h { font-size: 9px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: #9A7A2E; margin: 20px 0 8px; }
+.rep-item { border-bottom: 1px solid #E6DFCF; padding: 9px 0; }
+.rep-item:last-child { border-bottom: none; }
+.rep-when { font-size: 9px; color: #9A7A2E; letter-spacing: 0.1em; text-transform: uppercase; }
+.rep-line { font-size: 12.5px; color: #1E1B16; margin-top: 2px; }
+.rep-note { font-size: 11.5px; color: #6B6356; font-style: italic; margin-top: 3px; }
+.rep-foot { text-align: center; font-size: 8px; color: #A89E88; letter-spacing: 0.1em; margin-top: 20px; line-height: 1.7; }
+
+@media print {
+  @page { margin: 14mm; }
+  body { background: #fff !important; }
+  .bottom-nav, .toast, #report-chrome { display: none !important; }
+  .page { padding: 0 !important; min-height: 0 !important; padding-bottom: 0 !important; }
+  #page-report .page-header { display: none !important; }
+  #print-area { margin: 0 !important; border-radius: 0 !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== SPLASH ==================== -->
+<div id="splash">
+  <div class="header-block">
+    <p class="provider-line">Kelly Davis, PT, DPT, ATC, COMT, CSCS</p>
+    <div class="oc-header">
+      <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAE2AVsDASIAAhEBAxEB/8QAHQABAAEFAQEBAAAAAAAAAAAAAAcEBQYICQMBAv/EAFgQAAEDAwIDBQMGCAYMDgMAAAEAAgMEBREGBxIhMQgTQVFhFCJxMkJSgZGhCRUjM2JygrEWkqKys9EXGCQ1N1NjdJPBwtMmNDZDVmRlc3WDhZSk0kZV4f/EABsBAQACAwEBAAAAAAAAAAAAAAABAwIEBQYH/8QANBEBAAICAAQDBgQEBwAAAAAAAAECAxEEEiExBUFREzJhcYGxBiKhwRQz4fAVNEJigpHR/9oADAMBAAIRAxEAPwDcpERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBF+XOa0Zc4NHmThfhtRTvdwtnic7yDwSg9UREBERAREQEREBEXwkAZJAHqg+ovL2mnzjv4s+XGF6Ag9CD8FEWiTT6iIpBERAREQEREBERAREQEREBERAREQEREBERAREQEREBWXWGqtPaRtLrpqO7U1vpgcNMr/ekd9FjernegBKjzffe20beMdaLeyK56jkj4mU3H+Tpgej5SOnmG9T6DmtNNWapvmqrw+76huU1fWPzhzz7sYPzWN6Nb6D70GxOvu1JIBJTaJsLfECtuROPi2JvM/W4fBQtqXeHcu+Od7Zq+4wMJ/N0bhTNHw4MH71gzpcrxkcg+3OsrK+V0tfW1dZI45c6oqHyE/wAYlWt8bGO4o29276TDwn7QquRypJXILzZNea40+WfibWF9o2s+TGyte6MfsOJb9ylHRHav3EsM8ceoqeg1LQjk8Pb7PUY9Ht90n4tUFylUNQeqgdHNpd/NvtxZYqChuJtt4eOVursRyOPiGH5L/qOfRSsuQDy5kjZGEtc05a4HBBHQgrZPs89qS8abnp9PbgzTXWyktZFXn3qikHT3vGRn8oevRSN7EVPbq2kuNBBX0FTFVUtQwSQzRODmPaRkEEdQrLq3VNJY29w3E9a9uWxA8mjzcfAfeVVmz48FJvknUQypS155ax1Xutq6aip3T1UzIY29XOOFiN41y1gLLZS8Z/xsxwP4o5n7lhVxu9Zcp+/rZ3Sv8B0a30A8FRyTZGF5TjPHsuSdYfyx6+f9HVw8BWsbv1lc7nqi/VRPFcZIgfmw+4Pu5/esdrqioqCXVFRNMfOSQu/evSV+VSTOXDyZsmWd3tM/OW7Wla+7ChnYwfMb9io3SSwv7yCaWJ46OjeWn7lWznqqGZVR07LFfRaz1VbiPZr5VkD5sz+9H8rKyqwbzXCme2K/22Gqi8ZqX3Hj4tOQfqIUbzqhqOi3sHiHE4Z/Lefuovw+K/eG0GlNb6b1Me7tlxYakDLqaX3JQPPhPUeoyskWlb3PjmbLG9zJGHLHtJDmnzBHRSbt/vPXWngoNVd5XUQIDatozNEP0h88Dz6/Fej4LxyuSYrmjU+vk5+bgJr1x9Ww6LwoKumr6KGtop456adgkilYcte0jIIK916CJ25wiIgIiICIiAiIgIiICIiAiIgIiICIiAon7SG60W3Gl2wW6WF+o7iCyhicOLum/Omc36LfAHqcDzUlX+60VjslbeblMIaOigfPPIfmsaMn9y5r7i6yuGu9a3HVNxDmSVj/AMjCXZ7iEfm4x8B19SSgoq+uqq6smra2pkqaqd5kmmldl8jz1cT5qnMnqqXvOS+GXCCqMnqvKSXmG9XOOGgdSfRZ9sptNqTc+6YoW+w2aB/DV3KRuWs/QYPnv9Og8T4HdLbHZ/Q239OHWm0xVFwIxJcatokqHfBxHuD0bgINELRt9r+9xtktGjL7WMf8l7aRzGn9p+B96qq/Z3dilj7yfb6+Bn+TYyQ/YxxK6SgADAGF9Qco79aLxZJjDebTX22QHHDVU74ufl7wVmmdldaLzabXeaGSgu9upLhSSjD4amFsjHD1DgQtYd8Oyda62iqbxtofxfXty/8AFUsn9zzebY3HnGfIE8PwQaUTHmr/ALZ6OuuvtcW3S1njc6orJQHyYy2GMc3yO9GjJ+weKs14t9farpU226Uk1HW00hjmglbwvjcOoIW8nYf29h0dttU7gXqNsddeYjLEXDnDRt5t+txBd8OFRMxEbkStSwWPabb226XsTDxQQ93TMe4uc93V8rz6kkn1OBy6R3NVS1Ez56iZ000juJ73nm4+a/Gor1PfLxPcag47w4jZnlGwfJb/AF+pKoBL6rwfifH24vL092O3/ru8NgjFX4yuIl9UMmfFUIm9VkWjNN1upKkmNxgoo3YlqCM8/ot8z+77lo4cV814pSNzK+9q0rzWnotbBJNK2GGN8kjujGNLnH6gr/btB6kuDeN9PFRMPQ1D8E/styftwpU0/YbZY6buaCmawn5crub3nzLuv+pXRem4b8PUiN57bn0hzMniFu1IRS3aquePyt4p2n9GFx/1qnrNpLiWk014pXu8pInNH2glS8i3v8D4LXu/rKn+OzerXW/7c6vtwLxbm10Q6vpJA8j9k4d9gKwavjlp53QVEUkMzescjC1w+o81uGrRqTTdk1FRmlvFvhqW/NeRh7D5tcOYPwWln/D1JjeG2vmvx+I2j34ahTcys22i27frC4+3XJkkdkpn/lCOXtLwfzbT5fSI+HXpldXsbOdVwCC6h1gfl8xccVLMfMHLBz9Lw58lNVsoaS2W+CgoIGQU0DAyONg5NAVXh/g14yc2eOkeXr/RnxHGxy6x+b1p4YqeCOCCNkUUbQ1jGDAaB0AC9ERepcoREQEREBERAREQEREBERAREQEREBERBrp26taiy7f0OkqaQirvs5MoB6U0WC/PxcWD4ZWlIlz4qZ+3FenXDfKSg48x2y3wwNH0XOzI7+c1Qcx6gVvGsr2i0Pc9xteUWmreHsif+VragDlT07SOJ59eYaPUhYUHreLsLaRjtW2M2q54gKu+1DjG4jmKeJxY0fW4Pd9YQTjpPT9p0tp6jsFjo46Sgo4wyKNg+0nzJOSSeZJJV1RFIIiICIiCBu1DsNR7lexX+yww02oIJooql4Ab7VTFwDuI+LmNJIJ8BjyWVbuVUOntGWzS9uxFDI1sPCPCGIDl9Z4R9qk9a/b7XT2jXjqMOPDRU0ceP0ne+fuLfsXL8YzTi4W2u89P7+jZ4SnNlj4MZZLnxX748q2RTeq92yrwuncX3TNqqb9fKe10x4e9dmST/Fxj5Tvs6epC2JtVBS2y3w0FHGI4IW8LGj9/xPVR9sTaGRWipvkgzLVSGKPPhGzr9rs/YFJa9n4HwcYcPtZ96328nH43Nz35Y7QIiLttIREQEREBERAREQEREBERAREQEREBERAREQEREBERAXxfV8Qcz+1HWOqe0LrKRxJ4a5sQz5MiY3/Uo6ZIpE7U1I6k7Qeso3jm+ubKPg+Jjh+9RmgqnzAMJz0C6hbHUTLds7pCjYMCOz02fiYwT95K5Zv5tI8wuo2wlzZd9ltIXCNwcJLTA12PpNYGuH2tKgZwiIpBERAREQFqjufWum3K1C5x5trOAfBrGtH7ltctL9f3JlTuFqGoidmN9xm4fgHcP+pcPx3rhrHx/ZvcD0vMqiKb1VS2bpzVgp6nPiqz2jETnZ6AleStV1YltdtjA2n0DZmAfKpWyH4u94/vWSK26WpzSaZtdM4YMVJEwj1DArkvomCvJirX0iHnrzu0yIiK1iIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiINAu3hZHW3e5tyEZbFdrdFKHY5OfHljvuDVABC357c+hf4S7Wx6lpIuK4adlM+QObqZ+BKPqwx37J81oSOYQeZC3l7AetWXTb2s0TUyj2qyTulp2k8zTyuLvueXj6wtH+ELK9o9cXTbrX1v1Ra3Od3LuCqgBwKiB2OOM/YCPIgFQOpqKyaI1RZdZaYotRWCsZVUNZGHsc082nxY4eDgeRB6EK9qQREQEREFm1rfKXTWk7nfayQMio6d0nP5zsYa0epcQB8Vot7VLPM+eZ2ZZXl7z5uccn7ypV7Tu5sGoboNIWSUSW2gm4qydrstnnb0a3zaw55+Lv1ecNRyeq854pljLeKx2h0OGpy13PmvdPUYxzWRaQpHXzU1rs7ckVdVHE/HgzPvH+KCsJjmI8VNvZU09Jc9WVWopmH2W2R93GSPlTPHh8G5/jBc3h+G9tmrRs5MnLSZbOAtBDAQDjkPRfpaa7ldoGr012sjMyZ8+mbTGLTWQR/OBPFLIPNzX4+IZjxW4NtraS5W+nuFDUR1FLURtlhlYcte1wyCD8F7VxlSiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiIPGupaeuop6KrhZPTzxujljeMte1wwQR5EFcyt9du6rbPcWu08+OU29xM9snfz72nJ93n4lvyT8PVdO1He/m11t3T0U+0VDmU1ypyZbdWFuTDLjofEsd0I+vqAg5nYX0NVz1VYbtpfUNXYL7Rvo7jSP4JYnfc4HxaeoPirc0qBIGy+7GqtrrwamzVAqLdO7NXbZ3HuZv0h4sf+kPryt1dre0Lt1rimjikukdiup5Pobi8RnP6Dz7rx8Dn0C51g80IB6jKbHWynngqIhLTzRzRno5jg4H6wvRcobXer3bP713u62//NK2WH+a4K7T6z1lXxiKu1lqWqjAwGS3adw+zjWNrxCYrt0k1dr3R2k6V9RqDUVvoQ0Z7t0odI70axuXOPoAtY93u0TcNU001l0hDUWi1S5bLVSHhqZ2eQAP5Np+PF8FrZAcv43c3nq48yfrVzp39Fo8RntMar0X46RE7leYHgAAKsierVA/pzVfT5cQACSTgAcyVxslW5WVzoKeqrqyCiooH1FVUSCKGJnV7ycALaTVV1ouz/2fpJjNBLeO7LYc9KiukHUDqWt6/qtVH2ddr/4M0J1rqmm7q5GJzqWnkHEaSLHN5A/5xw+toOOpK1P7U26sm6G4D30T5m2C1F9Pbongt4ufvylp6FxA68wAOnNdfw/hPZR7S3eWpxGXmnljsiiqqJ6urmq6qZ81RPI6SWR5yXvcclx9SSthuy12hJ9v2s0rqx1RWaae/wDITN9+S3k9cDq6PPMgcxzI8lrmDzVVT45LptZ1rsN5tV+tcNzstwprhRTNDo5oJA9rh8Qq9cutu9das0LchX6WvdTb3n85EDxwyjyfGfdd8cZHgVsLpPtdXyFjI9S6UpK/GA6ahnML/jwOBH3hBuAigC39qzQdRGDPYdTQSeLfZ4XgfWJV53PtU6UijP4t0vfql/h35hhb9oe4/cg2DVi1rq/TejLNJdtS3amt1LGCQZHe88+TGjm4+gBWqesu1JrSuY+LT9st1kaRgSOzUyj1y4Buf2StftWXy9aiuclzv92rLpWv6zVMpeQPJo6NHoAAgmPcLtU6wuWtqKv0nG21WO3yl7KOdgc+uHQ9/g8hjo1p5E5yTjG1Gyu6um90NPCutMwguEIArrfI78rTu/2mHwcOR9DkDmlL1KuOkdSXzSWoaS/adr5qG40zwY3xn5Q8WOb0c09C08ig6tosX2qvt81LoK13rUdhksdzqYuKake4HHk4eIDhz4TzGcFZQgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiII13z2c01uramNuINDd6ZhbR3KFgMkfjwuHz2Z+afXBBWhe6+1usds7l7PqS3H2R7+GnuEGXU83kA75rsfNOCunypbrb6G62+a33OjgrKSdvDLBPGHsePIg8ig5LhfQt49zeyZo6+mSs0fXT6arXEnuS3vqV37BIcz6nY9FBOpuy3uzaHONDb7fe4geTqOra1xH6snD+9QIVaveI4csquO1W59tkcyr291MOHq6K3vlb9rAQvKj263EqXcEGgNVPd5fimZv72hYWrtlErTTuVfA/GFnOmNg93bu5mNIT0ETv8AnK+eOED4tyXfcpl0F2T5xURVOtdRs7kc3UdtaQ53oZXdB8G59QtS2C1p6LYvENfdN2y5326w2qzUFTX103yIIGFziPEnyA8ScALbfYrYqHTUlNqHVwhq7xGRJT0jfeipD4OJ+fIPPoPDJ5qVdEaK0vougNHpqz01Ax2O8e0Zkkx9J59531lZCs8XB0rPNbrLG2aZjUC1s7TPZspNaSVOrNEshodRvJkqaVxDYa4+J/Rk9eh8fNbJotxU5F6gs90sF5qLPe6Cot9fTO4ZqednC9p+Hl5HoVTQuwV1L3M2y0VuLQCl1VZoqp7ARFUs9yeL9V45j4cx6LVPX3Y61RQVE1Rou/Ul2peImKnrfyM7R5Fwy1x9fdQa3QyY8VXQS48VetUbX7k6Te4X3RV6p42nHfRU5niP7cfE371i5e+E4lY+IjqHtLT96C/01TgdVUOq8+KxxlbGOkjftVRTPqap4jpaaoqHno2KJzyfqAQXKafPiqGofnKzXSu0G6uqS11r0TdIoXcxPXM9ljx55kwT9QKnDbvsh1EkjKvX+oQyMczQWvqfR0zh/Nb9agavaasN61Vf4bHp621FyuE3yYYG5IHi5x6NaPM4C3O7PXZptuj5abUutTT3W/xkSQUrW8VPRO8Dz+W8deLGAeg5ZU0aC0JpPQttNBpayUtujdjvHsbmSXHi959531lZKpBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBUNZaLVW59stlFUZ697A137wq5EFkZpHSrH8bdNWdrvMUUef3K5UtDRUoApaOngA/xcQb+5VKICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAijvdjeTQ+23DT324uluUjOOOgpW95OW+bh0YPVxGfDKhep7ZtnbV8NPoO4yU+flvr2Mfj9UNI+9BtYih3aztFbe67r4rWKmayXSY4iprhwsEp+ix4PCXemQT4BTCg+ooA3I7UOm9E65uulKzTN3q6i3SiJ8sMkYY8lrXZGTn5yx5vbJ0rxtDtHXwNJ5kTRHA+GUG0CKMNpN8tCblVZt1nrJ6O6hhf7DWx93I8DqWHJD8eODlWrfHf2y7VampLFcrBcbhJU0gqWyU0jA0Dic3B4j191BMiLV4dsrSp//Db5/pov61+h2ydJf9EL7/pYv60Gz6KLNlt6bPujRXuqtlnuFA20NY6UVLmEv4g4jHCT9A9Vje2faW05rvX1u0hQadutLU1zpA2aZ8fA3gjc85wc9GkIJ3RFEO+O/Fi2ov8AQWe62S5V8tZSmpY+mcwNa3jLcHiI55CCXkWO7b6rpNb6JtmqaGmmpqe4Rd4yKbHG0ZIwccvBeG4+4GktvrOLnqm7w0THkiGEe9NO7yYwc3fuHjhBlKLVi9dsqwQVHBadFXOsiB5yT1TICR5gAO+9ZRoDtWbd6iroqG8R1mmppXBrZK3hdBk+cjeTR6uAHqgn9F+YpGSxtkie17HAFrmnII8wV+KuogpKaSqqp44IIml8kkjg1rGjmSSeQCD1Ra+627WO3dkq5KSyQV+o5I3FplpmiOAkeT3/ACh6gELGLT2zLHLVCO6aHuVJCTjvIK1kxA8+Etb+9BtSixTbXcLSe4dndctLXSOrbGQ2eB3uTQE9A9h5jPgeh8CVlaAi161b2rNH2DU9zsrbDdrg2gqX07qmB8fBI5hw4tyc4yCPXCnewXWivljob1bZmzUVdTsqIJB0cx7Q4H7CgrkXjWTtpqSapc0ubFG55A6kAZWtL+2NpADLdJ313/mRD/aQbOItZ6Hth6NmmDajS19hYfnh0T8fVxBTbttuFpTcO0PuWl7m2qbEQ2eFzSyaBx6B7DzGfA9D4FBlaKPt7907XtVYqG7XW2VtfHWVJpmMpi0Oa7hLsniI5clEf9uPpD/ojfv9JD/9kGzqLWWl7Ymkp6yGnGkr60yyNYCZIsAk4+ktmI3B8bXgYDgCg/SIiAiIgIiICIiAsG3213HtztjdNT4Y6qjaIaKN3SSd54WDHiBzcfRpWcrWf8Ia2pdtXYDGHGAX1nfY6A9xLw5+vKDXrZXQt53v3NqWXa51Zhway8XEkGTBdgNaTy4nHIHLAAPLlhbjUPZ12cpba2h/gXTTgN4XTTTyulcfMv4sg/DCij8HWKX8Q6wLeH2r2um7zz4OB/D9/GtrkGg/ar2Mp9shTaj01UVMtgq6juXQzO4n0cpBLQH9XNODgnmCOpU99ivcmv1tt/UWS91Lqm62J7Yu/ecvmgcD3ZcfFwwW58eEE88lXXtrikPZ0v8A7UQH99Sez56957RHjH1cX3qEfweDJzrjVEjc9wLZE1/lxGX3fuDlAi3tLATdpHVTHcw65xMI9OCMLear2U2nqqZ8EugbGGvGCY6cMcPg5uCD6haL9pomLtE6ukb8ptxY5vx7thCkPUPad3loqb2estVstE07D3UklrlY/wBS0SOwcZHgQgjHcyzDbXee52zT9dNiy3FktFMH/lGcmyNBPiRxcJ88c1v9qDbvQ2vmUF51Zpihudb7IxrZJg7ia0ji4RgjlklahdnnZm/7q6ij1vqir4rCaw1FTO+dr566Vrsujw0ksBPyi7HI8hzyN8mNaxgY0BrWjAA8ApGlPbe280VoWw6ZqNJ6dpLVLV1kzJ3wl2XtbGCAck8slZH2PNq9v9ZbTG86m0xR3Ou/GM8Qmlc/PAOHA5OA5ZKq/wAIw3OjtJP8rlMPti//AIsp7BH+Ar/1Wo/2UEo6f0Do/RNouw0pYaW1e1wHv+44vynC13DnJPTJ+1aLdkv3e0hpb1lqh/8AHlXQ+7f3qq/+4f8AzSuXmhTqr+HNCNEGrGou8kFD7KWiXi4HcXDxcvkcXXwyg6mLR/8ACGEHc7TrfKzH+mcvJo7YBHD/AMLMerqVRXvS3ctt9of7KX4x/Gvsv9y+2mMv7jjPTu+WOLPXmg3Z7OF0prJ2YLHea13DTUFsmqZj5MY57j9wWlstTqvffeiGKSoe+vvFS5sDXkmOipxl2APBrGAnl1I8ytm7SKl/YBqRShxk/EE+cdeDvHcf8nKiLsDij/s31RqOHvxZZ/Zs/S7yLix68Ofqyg2O0f2Z9p7HZoqSvsH49q+H8tWV0ry+R3iQ1pDWjyAH1nqoc7UXZxsemtM1WtdCRzUtLRgPr7a6QyMbHnBkjLiXDHUtJIxzGMLcpY7uaKN23GphcC0UhtNV35PQM7p2fuQa1dhHc2vqp6rbi8VLqiKGA1Vqe92XRtGBJD6tGQ4eXvDpjFt7eO5VXLeodt7VVujo4IWVN1Ebsd5I7myJ3oG4cR48TfJRl2NmVR7QWmzBkARVBn/U7h+fvwrV2mu/d2gNaGtDg729vI/4vuY+H+ThBM/Zi7Nlpvem6PWe4UE9RHWsEtDau8MbO6PyZJS3DjxDBDQQMEZznAmfVXZx2kvlqko4tMRWictxFV297o5Iz4HGS137QKkrSppjpm1mj4PZjRw9zwdODgHDj0xhXNBHexu09i2q0/NQW2R1bXVT+Orr5Yw2SbHyW4HRrR0HmSfFVW/Os4dBbVXvULnhtSyAw0bfF88nuRgfAnJ9AVnS067fmrW1l6s+h6abiZRRG4VjWnpI/LY2n1DeI/tBBBumNDXXUe2+q9cQPe5lhkg424z33G496fi0FrvrK2s7Cms2Xjbyr0jPODV2KbMTCeZp5SXNx6BwePTl5q47B2jQ2nNgqbSd41FYhU3emkmujTXRZ7ycc2n3urWlrf2VrJsJfpNsu0JRw1VXEaX2ySz1szJAYpI3P4WvyORbxNY4HyQdCL9ysdef+rSfzSudHZYsdo1HvbYLRfrdT3G3zx1PeU87eJji2B7gSPQgFdF77zsld/m0n80rmJtTqS+6R1rb7/pqibW3WlZJ3ELoHyhwdG5rvdaQThpKDeTcjYPa25aNubKTS9vs9XFTSSU9ZSNMT4XtaSCcHBHLmDkYWp/ZAvNfa9+rDHSTPEdxElJUsafdkjLHO5j0c0EK46/7Qe6OqrTU6WuDqOzx1P5GqjpqUwzOa7HuF0jiWA5GenI9cKZ+ydsLcNJ3WPXerRHFce5cy30EcjZBC14wZHuaS0uLeQAJABPPPQP1+EIz/Y804P8Atc/0L1aexnttoTVu01RdNS6Xtt0rW3aeFs1RHxODA2MhvwGT9qu34Qf/AAfac/8AFz/QvWvu1Nt32rdNOk21l1GyyipeHewVkcUXfYHHyc4HOOFBu3FsrtRFI2SPQVja9hDmkU/MEeKkBoDWhrRgAYAWq/Z5tnaHo907dJuBLqN+nu5nFQKytiljDu7PBkNcT8rC2pQEREBERAREQEREBYTvjoeLcPbG76YPA2pnjElHI7pHOw8TDnw5jB9CVmyIObuy2vL3sdunUm8W2rbD/wASvNuPKThDsh7QeRc3mW+BDjzwcrcug7ROz9XbRW/wxpqfLeIwTxPZKPThx1+CuO7ezOhtzOGe/UEkNxYzgjuFG8RzgeAJwQ4DycCoRn7F9Gazip9w6tlLn5D7Yx0mPLiDwPuQR72s98aTck0mm9MR1AsFJKJ5JpWcDqubBDcM6hrQeWeZJ6DAzP3Yv23r9D7czXS+UxprtfJBO6Bww+GFoxG13kTkuI8OLHVXTa3s5beaFroboIKm+XSEh0dTci14icPnMYAGtPkeZHmpjQc3e0s0HtJanb53OH72RrdDtJbXw7mbcy0NKyJt8oGmotcruX5THOMnwa8DB9cHwWN667MWktX6+r9YV+oL7BVVtQyofDA6IRtLQ0ADLCce6PFTsBgYQc/eyjuZNtjuHNYdQmals9zm9mro5B/xSoaeFshHhg+64+XP5q6BNcHNDmkFpGQQeRUIbn9mbQuu9XVWpqiuu9qqqsA1MdC+MRyPHIvIcw4cRjOOuMqVtEWJ+mdLUNhdda26too+6jqazhMrmD5IcWgA4GBnHgg1x/CLf8jdJj/tOX+hKyrsGt4diWHzulSfvas+3q2osG69rt9uv9bcaSKgndPG6jexri4t4cHia7lhV+0W31p2z0iNM2WrraqkFRJOH1bmufl+MjLQBjl5IMmvBxaaw+UD/wCaVzq7Kh4+0hpL/Oag/wDx5V0arIG1VJNTOcWtljcwkdQCMKEttuzLo/Quubbq623y+1NZQOkdHHUPiMbi9jmHIDAejj4oJzWj34QpuN0NPO87Mf6Zy3hUU707F6W3VvdDdr7crvST0VMaaMUckbWlpcXZPEx3PJQePZutlLdezNp+01sYkpa61ywTMPzmPL2uH2ErS+totVbDb0wzOp3x1dqqHSUr35EdbTHLeR8WuYSD5H1C6G7e6WodE6Ntul7bPUT0lvi7qKSoIMjhknmQAPHyVLuPt/pPcGzi2aptUdZGwkwyg8MsJPix45tQYFpXtL7UXm1xVVbfXWapLR3tNWwuDmO8QC0Frh6gqI+0/wBouw6i0pU6L0LLNVxVw7u4XBzDHH3XjHGDzcXeJwAB555Xi89jGxS1ZfZ9dXWjpyT+TqaSOdwHkHAs/csv297K23WmqqOtu8ldqaqjIcG1xa2nBH+SaMH4OJCDCOwrtlcKJ9VuNeabuI6mn9ntTHj33sccvlx4NOAG+fvHyzbe3ZtpWNvEO5Npo3y0ksLKe7d23Pdubyjld+iW4aT4cLfNbgwxxwxMiijbHGxoaxjRgNA6ADwC+VMENTTyU9REyaGVpZJG9oc1zSMEEHqEGonZl7R1mselqXR+vZ54G0LBFQXERmRphHyY5McwWjABwQQBnGOcwag7SO0dponVEWpDdJAMtgoYHve4+XMBo+shY7r/ALKO3uoZ5KuyVNfpmpe7iLaUiSnz/wB27p+y4BY3p/sa6fpqoSXzW11uEAOe6pqZlMT8XEvP2YQShszvdpzcTTVzuToxaK21MfPXUcsocYoBkiUOwAW4HM+BBHkTpjYaG67576zxR1L6eS+VctRLUFnH7NTsacHhyM4Y1jQMjmQt3a3Z7S0e2Nw0Dp1smnqC4sEdXUUbWmombkcQc9wJcXDkSc8iVadkNhdM7VXutvFrudyuVZVQCnDqzgxGziBIbwtHUgfYgiYdi+Dx3Eef/Rm/71Q32g9nKnaW52ylddXXahuUL3RVXs3c8MjCOJmA53PDmkHPn5LoysL3f24sW52l2WG+yVMEcVQ2ohnpi0SxvAI5FwIwQSDyQWPZbWLtcbC0l5nmE1dHQS0ta4HmZo2FrifU8nftLTrsbNL+0JpgjwZVE/8AtpFuVs9s/atsrZeLXaL7eK6guhD3w1jo3CJ/CWl7OFo5kYBz9ELG9quzdpTbzWtDqq1329VdVRtkayKpMRjIewsOeFgPQ+aDAu3HtZJVUzdyrFSB0tOwRXmNg5uiHJk+PHh5NP6OD0aqjsS7tR3G2N22v1Z/dtGzNokkd+egHWHJ+czwH0f1Vs9W0tPW0c1HVwsnp52GOWN4y17SMEEeRC15puyXpS36mZfbJq7UlrmgqvaaRsLoiKch2WtaSwkgdOeeXVBQfhCP8H+m/wDxY/0L1Y+yButoDRW1Etn1NqOnt1c66Tz909jyeBwYAeQI54Knbebaqz7p2G32i+3K40rKGfv2S0hY1z3cJbz4mkY5+CitvY60GOuqNUH/AMyD/doJC/thdni4NGtqIk8h+Sk/+qlCKRksTJYzlj2hzT5grW3+050Hxtd/CfU/I5wZIP8AdrZGnibDTxwtJLY2hoJ64Awg9EREBERAREQEREBERAREQEREBFQ3a72y1Rh9xroKUO+T3j8E/AdSqW0amsN2n7i33Snnl+gDhx+oqqc2OLck2jfpvqy5LTG9dF4RFR3S6W61xCW41sFKw9DI8DPw81Za0VjczqEREz0hWIrLbNV6duVQKeiu9LLMThrOLhJ+AOMq9LGmSmSN0ncfAtWa9JgRUF3vFstLYnXKugpBM7gjMrscR8lXAggEEEHmCFMWiZmInqanu+oqGhu9srq2poqOuhnqaV3DPGx2XRnOMH61XKa2i0biSYmO4itd31BZbS/u7jcqenfjPA53vfYOa/VmvlovAcbZcIKos+UGO5j4jqsPbY+bk5o36J5La3rouSL4SACScAKhs94td3ZI+2V0FW2IgPMbs8JPTKym0RMRM9ZRqe6vReNZUwUdLLVVUrYoYml0j3HAaB1JVldrXSjet9ov46xvmx4/ftEfOUxS1u0MgRUtruFFc6JlZb6mOop3khsjDkHBwfvVLedQWWzzRw3S5U9JJK0uY2R2C4DkSFM5KRXnmY16oiszOtdV0RWa26q07cqptLQ3mjnnd8mNsg4j8B4q8pTJW8brOyazXpMCLyqqiClgfUVM0cMTBlz3uAA+sqxN1xpN0/cC+UnHnHU8P24x96i+bHjnV7RHzlNaWt2hkSL8RSMljbJE9r2OGWuacghUN6vloswiN1uEFIJc8HeOxxY64WVr1rHNM6hERMzqFxRY63XGknODRfqMknA948yshHMZCxplpk9y0T8k2raveH1ERWMRERAREQEREBERAREQEREBERAXnPI2GCSZ3yWNLj8AF6L8TRtlifE8Za9paR6FRO9dBDu39rbrzUVzv1/c6aGJ7QyDiIac5Ib+q0AcvEnms/GhdNR3Knr6e3infA7iDInEMcR0y3pyPPko70xc5dtNVV9nvUMpt1WQ6GdjSc4zwuA8Rg4IHMELNodyLBVXakt9Aysq3VD+AujhPueuDzP1DkuBwM8JXHy59e031333tv54yzbdN8uumu2mZSODGOeejRkqHtF0Dde6wud4vr3z09PhsUGcNAJPC30AAycdSeamF7Q9ha7oRgqG7PXS7aayrKS7U8ptdd+ZnjbkciS0jz5Egjr0K2vEuX2mKcv8vc79N+W/gr4bfLaK+95fuvu5ehbKzTVXdLVStoaqkjMv5ElrXtHMgjzx0I5q8bQXupvejIZa2V01RTyOp3yOOXP4cYJ8zgjmsd3B19bbnp+azWAT1lVXDuciJw4WnqADzLiOQA81lG1dgqNO6RhpKxobVSvdPM3OeAu+b9QAVXDzitx0zw+uXl667b30+rLJzRg1k776b7sS7RmTbbM0eNS8fyV+9ptWVdHXP0TqZxirqc8NI+Q/nG4yGZ8eXNp8R8F87RQLrfZAPGrcP5Kuu6OiDqG0U9ytZ7q9ULGuhe3l3obz4CfPPMHwPxVWSuWOMy5sPWa8vT1jXX6+jOs09jWl+076+i27VnO5usfWd/8ASuWd6zur7Jpa43SJodLTwOdGD0Lujc/WQox2Cqqit1XqCprD/dMkbXzcsHjLzxZHgc5UpaqtTb5pyvtLn92amFzGv+i7wP24Wx4Za1+Cmad55tf9yr4mIjPq3wR9tXpWivlrdqO/A3CeplfwtlJxyOC53mSc+gGFmVq0Vp61X38cUFEYKgMLWtDzwNz1IB6HHJR5t3rOPR0VRpjVFNPSvp5XOjeGF3DxcyCBzIzzDh1ys005uJZ9Qal/E1spa6Ud2X+0d1hgx5+LR6nHPkq+Atwfs6Vtrn+Pff3ZZ65ua0xvl/TTLqj8xJ+qf3KL+zz/AHtu4/y8f80qUKj8xJ+qVF3Z452+8cx+ej/mlbHE/wCdwf8AL7Ksf8m/0ZruMeHQt5P/AFR/7lHGhK3b6PT7GaiZbnXASP4jNAXO4c+7zx5KRdy/+QV6/wA0co40BeNB0mnWQX+Cjkrmyv4nSUneEtLst5gHwWp4haI42u5rH5f9Xbv91uCJnDPfv5JcslNbqS2Qx2mnhgo3N7yNkTeFuHc8geucqKt7e4OvNNCq7swEAS8fyeAyt4s+mMqUtO3K3Xa0Q1lpeH0ZyyMhhaBwnhxg+WFFW+FPFV6/01SztD4p2tje0n5TTKAR9hV/iurcF+XWt1+XeP0Y8LE+26/H7KXdGn0dTChbpZ9ILq6cBrKGTi/VPI4DuLGMc1NFB33sMHtP57u295+tjn96hjUGnv7HWtaHUFupo5rO5+O7eMmLI95oJ6HHNp+IUz2+rp6+ihraSVssEzA+N7TyIKjwyNZsvNEVt06R216/U4md0pqdx6/sifcWafU251v0h3z46OItMgB5cRYXudjxIbyHlkrL6zROiIKEUk9HS0xLfdldNwy/HiJyf3LEdz6C4ac19Ra6o6V9RStLPaOEfJIaWEO8gWnkTyyvLcHUehNV2VtVKal1yp4Xika+NzeBzsdfmkZaPFal74sVs1s0RN99Obzr5a/vutitrRTkmdfD1Slpyht9ts8FHa3MfTRjDXNcHcRzzOR45Ua9okN7mzOeAWiSQnPlhqyzZ+Pu9A0IDS0EyEZGMgvPNYr2hiwRWYvI4e8kznx5NW1x14v4bza1uI6enZVgrridd+srlY5tq7jVUtJRUdslq5SBG0UxyXYz4j0UjAYGAoztWqdsaaop5aOip4alpHBJHQFpDunIgKTAQQCPFbXh9q2rOprM/wC391fERMTG4n6vqIi6DXEREBERAREQEREBERAREQEREBERBT11HSV0Pc1lNDUR9eGRgcPvXjbrRa7c4uoLfS0zj1McQaT9arkWM0rM80x1TudaF41dLTVkJhqqeKeI9WSMDh9hXsimYiY1KFBQWa00EneUVtpKd/0o4gD9qr0RRWtaxqsaTMzPdTV1BQ14YK2kgqRGeJgljDuE+YyqgchgL6inUb2jalprfQ0tVNVU1HBDPOcyyMjAc/4kdVVIiRER2N7UVytVsuYaLhQU1Vw/J72MOx8Mr9W222+2xmO30VPSscckRRhufjhVaKOSvNza6p5p1p8IBBBGQVTW+3UFvY5lBR09K15y4RRhuT64VUinUTO0bedRDFUQPgniZLE8Ycx7chw8iFRfiKyf/qKD/wBu3+pXFFFqVt3hMTMdnjSU1PSQCClgjgiBJDI2hrRk5PILzqrfQ1VRFUVNHTzTRfm3yRhzmc88ienNVSKeWNa0bl5VVNT1UJhqYI54yclkjQ4fYUpaeClgbBTQxwxN+SxjQ1o8eQC9UTUb2jb8va17S1zQ5pGCCMgq2N05YG1HtAs1AJc54u4bnP2K6ootStu8bTEzHZ8AAAAAAHQBU1fb6CvDRW0dPUhnye9jDsfDKqkUzETGpRvS2tsFjaQW2egBHMYp2/1K4r6iitK17RpMzM9xERZIEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREH//2Q==" alt="OrthoCare Concierge" style="width:180px;height:auto;" />
+    </div>
+  </div>
+  <div class="gold-line"></div>
+  <div class="client-hero">
+    <h1 id="client-name-hero">Client Name</h1>
+    <p class="subtitle">Home Exercise Program</p>
+  </div>
+  <div class="nav-grid">
+    <div class="nav-card" onclick="showPage('program'); showProgramTab('today')">
+      <span class="nav-icon">&#127947;</span>
+      <h3>My Program</h3>
+      <p>Today's exercises</p>
+    </div>
+    <div class="nav-card" onclick="showPage('program'); showProgramTab('progress')">
+      <span class="nav-icon">&#128202;</span>
+      <h3>My Progress</h3>
+      <p>Consistency &amp; logs</p>
+    </div>
+    <div class="nav-card" onclick="showPage('goals')">
+      <span class="nav-icon">&#127919;</span>
+      <h3>Goals</h3>
+      <p>Your why</p>
+    </div>
+    <div class="nav-card" onclick="showPage('precautions')">
+      <span class="nav-icon" style="color:var(--gold)">&#9888;&#65038;</span>
+      <h3>Precautions</h3>
+      <p>Stay safe</p>
+    </div>
+  </div>
+  <p class="proprietary-line">
+    &copy; OrthoCare Concierge LLC | Kelly Davis<br>
+    PROPRIETARY AND CONFIDENTIAL. This program is the intellectual property of OrthoCare Concierge LLC and Kelly Davis. It is not to be copied, shared, or reproduced without written permission.
+  </p>
+</div>
+
+<!-- ==================== PROGRAM (HEP) ==================== -->
+<div id="page-program" class="page">
+  <div class="page-header">
+    <button class="back-btn" onclick="showHome()">&#8592; Home</button>
+    <h2>My Program</h2>
+    <p class="page-sub">Your home exercise program</p>
+  </div>
+  <div class="page-content">
+    <div class="tab-row">
+      <button class="tab-btn active" id="tab-today" onclick="showProgramTab('today')">Today</button>
+      <button class="tab-btn" id="tab-progress" onclick="showProgramTab('progress')">Progress</button>
+    </div>
+
+    <div id="today-tab">
+      <!-- STANDING GLUTE REMINDER -->
+      <div style="background:rgba(201,168,76,0.12);border:1px solid var(--gold);border-left:3px solid var(--gold);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:16px;line-height:1.3;">&#128161;</span>
+        <p style="font-size:12.5px;line-height:1.6;color:var(--gold-light);font-weight:400;margin:0;">Reminder: whenever you are standing through the day, gently squeeze and engage your glutes to support your low back.</p>
+      </div>
+      <!-- DAILY SECTION -->
+      <div class="section-label">Today's Plan</div>
+      <div class="card card-gold intro-card"><p id="daily-intro"></p></div>
+      <div class="prog-pill" id="daily-progress">0 of 0 done today</div>
+      <div id="daily-list"></div>
+
+      <!-- SESSION WRAP-UP -->
+      <div class="card" style="margin-top:18px;">
+        <label style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:7px;">How did today feel?</label>
+        <textarea class="notes-input" style="margin-top:0;" id="session-notes" placeholder="Energy, pain, anything to tell Kelly..." onchange="saveSessionNotes()"></textarea>
+      </div>
+      <button class="export-btn" onclick="showPage('report')">&#128228; Send My Log To Kelly</button>
+    </div>
+
+    <div id="progress-tab" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ==================== GOALS ==================== -->
+<div id="page-goals" class="page">
+  <div class="page-header">
+    <button class="back-btn" onclick="showHome()">&#8592; Home</button>
+    <h2>Your Goals</h2>
+    <p class="page-sub">The foundation of your program</p>
+  </div>
+  <div class="page-content">
+    <div class="section-label">Primary Goals</div>
+    <div class="card" id="goals-list"></div>
+    <div class="section-label">Why This Matters</div>
+    <div class="card"><p id="philosophy-text" style="font-size:12px;color:var(--muted);line-height:1.8;font-weight:300;"></p></div>
+  </div>
+</div>
+
+<!-- ==================== PRECAUTIONS ==================== -->
+<div id="page-precautions" class="page">
+  <div class="page-header">
+    <button class="back-btn" onclick="showHome()">&#8592; Home</button>
+    <h2>Precautions</h2>
+    <p class="page-sub">Know before you train</p>
+  </div>
+  <div class="page-content">
+    <div class="section-label">Stop Immediately If</div>
+    <div class="precaution-card"><h4>Red Flags, Stop And Contact Kelly</h4><ul id="redflags-list"></ul></div>
+    <div id="restrictions-list"></div>
+    <div class="section-label">Pain During Exercise</div>
+    <div class="card">
+      <p style="font-size:12px;color:var(--muted);line-height:1.9;font-weight:300;">
+        <span style="color:var(--green);font-weight:500;">0 to 3/10:</span> Acceptable. Continue with attention to form.<br>
+        <span style="color:var(--yellow);font-weight:500;">4 to 5/10:</span> Modify. Reduce load or range of motion.<br>
+        <span style="color:var(--red);font-weight:500;">6+/10:</span> Stop. Rest and contact Kelly.<br><span style="font-weight:500;">After you finish:</span> pain that stays above 4/10 more than 10 minutes after you stop is a red flag, even if it felt fine while you were moving.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== LOG REPORT ==================== -->
+<div id="page-report" class="page">
+  <div class="page-header">
+    <button class="back-btn" onclick="showHome()">&#8592; Home</button>
+    <h2>Your Log</h2>
+    <p class="page-sub">Send your progress to Kelly</p>
+  </div>
+  <div class="page-content">
+    <div id="report-chrome">
+      <div class="card card-gold intro-card">
+        <p>This is your progress log. To send it to Kelly: tap <b>Save As PDF</b> below. The print screen opens, on iPhone, tap the <b>Share</b> icon, then send the PDF to Kelly however you like (Messages or Mail).</p>
+      </div>
+      <button class="export-btn" onclick="window.print()">&#128424; Save As PDF</button>
+    </div>
+    <div id="print-area"></div>
+  </div>
+</div>
+
+<!-- ==================== BOTTOM NAV ==================== -->
+<div class="bottom-nav" id="bottom-nav" style="display:none;">
+  <button class="bottom-nav-btn" onclick="showPage('program'); showProgramTab('today')"><span class="nav-ico">&#127947;</span><span class="nav-lbl">Today</span></button>
+  <button class="bottom-nav-btn" onclick="showPage('program'); showProgramTab('progress')"><span class="nav-ico">&#128202;</span><span class="nav-lbl">Progress</span></button>
+  <button class="bottom-nav-btn" onclick="showPage('goals')"><span class="nav-ico">&#127919;</span><span class="nav-lbl">Goals</span></button>
+  <button class="bottom-nav-btn" onclick="showPage('precautions')"><span class="nav-ico" style="color:var(--gold)">&#9888;&#65038;</span><span class="nav-lbl">Safety</span></button>
+  <button class="bottom-nav-btn" onclick="showHome()"><span class="nav-ico">&#127968;</span><span class="nav-lbl">Home</span></button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Rotation reset prompt -->
+<div class="reset-overlay" id="reset-overlay" style="display:none;">
+  <div class="reset-box">
+    <h3>Rotation complete!</h3>
+    <p>You have worked through every exercise in your rotation. Reset it to start a fresh round?</p>
+    <div class="reset-btns">
+      <button class="reset-no" onclick="cancelPoolReset()">Not Yet</button>
+      <button class="reset-yes" onclick="confirmPoolReset()">Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// ============  DATA BLOCK  -  THIS IS THE ONLY PART YOU EDIT  ========
+// =====================================================================
+
+const CLIENT_NAME = 'Ziwei';
+
+// --- DAILY SECTION ---------------------------------------------------
+const dailyIntro = 'This is your daily program. Checking it off means you did it today. Tap an exercise for cues and video.';
+const dailyExercises = [
+  { name: 'Lower Trunk Rotations', rx: '10 reps per side · daily', log: false, video: '',
+    cues: ['Lie on your back with your knees bent, feet flat on the floor, and your knees and feet together.', 'Keeping your knees together and your shoulders flat on the floor, let both knees drop slowly to one side.', 'Bring them back through the middle, then let them drop to the other side.', 'Move slowly and stay within a pain-free range.'] },
+  { name: 'Gators (Upper Trunk Rotation)', rx: '8 to 10 reps per side · daily', log: false, video: '',
+    cues: ['Lie on your side with your knees bent up toward your chest and both arms stretched out in front at shoulder height, palms together.', 'Keeping your knees down and stacked, lift the top arm and rotate it up and over to open your chest toward the ceiling, following your hand with your eyes.', 'Let the rotation come from your mid back. Go as far as you comfortably can, then return.', 'Move slowly and breathe into the rotation.'] },
+  { name: 'Pretzel Mobilization', rx: '5 sec hold · 3 reps AM · 3 reps PM', log: false, video: 'pretzel-mobilization.mp4',
+    cues: ['Lie on your affected side and bring both knees toward your chest.', 'Hold the top knee, then straighten the bottom leg until it lines up with your hip.', 'Hook your bottom arm under the leg you are holding.', 'Rotate your upper body open toward the ceiling.', 'Press your bent leg into your forearm and resist it in an isometric hold, then release and take up any new slack.'] },
+  { name: 'Break the Stick', rx: '5 sec hold · 5 reps AM · 5 reps PM', log: false, video: 'break-the-stick.mp4',
+    cues: ['Lie on your back with your feet in tabletop, hips and knees at 90/90.', 'Weave a stick between your legs so one leg rests on top of it and the other sits behind it, then hold either end.', 'Keep your low back flat on the floor throughout.', 'Press the top leg up into the stick and the bottom leg down into it, as if trying to break the stick in half, without letting your legs move.'] },
+  { name: 'Transversus Abdominis Hold', rx: '5 sec hold · 10 reps · every hour', log: false, video: 'transverse-abdominus.mp4',
+    cues: ['Find your hip bones at the front and hook your fingers just inside them on either side.', 'Gently draw your lower belly inward and feel the muscle pop up under your fingers.', 'Keep breathing normally. Do not hold your breath or tuck the pelvis.', 'This is a low-effort, deep contraction, not a hard brace.'] },
+  { name: 'Traction (Lumbar)', rx: '2 to 3 min at a time · daily', log: false, video: 'traction.mp4',
+    cues: ['Loop a mobility band around a solid surface.', 'Step into the band and place it around your waist.', 'Sit down on a padded surface on the floor, with the band between your knees and the anchor about one foot off the ground.', 'Lie back, keeping the band around your hips, with your knees bent and feet flat on the ground.', 'Slowly scoot back to increase the tension on the band. You will feel a gentle pull in your low back and pelvis.', 'Relax and take deep breaths.'] },
+  { name: 'Baby Cobra', rx: '10 reps · continuous · 1 to 2x daily', log: false, video: '',
+    cues: ['Lie face down with your hands flat under your shoulders and your elbows tucked close to your sides.', 'Gently press through your hands to lift your chest and head a small way off the floor, letting your low back extend.', 'Lower back down with control, then flow right into the next lift. Keep it continuous and smooth, like a gentle wave through your spine.', 'Keep your hips and pelvis relaxed on the floor and stay in a pain-free range.'] }
+];
+
+// --- ROTATION SECTION (unused for this patient) ----------------------
+const poolIntro = '';
+const poolExercises = [];
+
+// --- GOALS -----------------------------------------------------------
+const goals = [
+  { title: 'Decompress and Calm the Low Back', desc: 'Use traction and gentle mobility to take pressure off the low back and settle the symptoms down.' },
+  { title: 'Restore Spine and Hip Mobility', desc: 'Get your back moving freely again in rotation and extension so it stops feeling stiff and guarded.' },
+  { title: 'Deep Core and Glute Support', desc: 'Build the deep core and glutes so your spine is supported and protected through your whole day.' },
+];
+const philosophy = 'Your low back has gotten stiff and compressed, and the muscles around it have tightened up to protect it. This program works from two directions. The traction and the trunk rotations, pretzel, and baby cobra open the back up and get it moving freely again, and the deep core and glute work rebuild the support so your spine is not left to do the stabilizing on its own. Keep everything gentle and in a pain-free range, stay consistent, and squeeze your glutes when you are standing to carry that support into your day.';
+
+// --- PRECAUTIONS -----------------------------------------------------
+const precautions = {
+  redFlags: [
+    'Increasing numbness, tingling, or pins and needles down the leg or into the foot',
+    'New weakness in the leg, foot, or ankle, such as the foot catching or dropping',
+    'Any loss of bladder or bowel control, or new numbness in the groin or saddle area. This is urgent, seek medical care right away',
+    'Pain that shoots down the leg and keeps increasing',
+    'Pain greater than 4/10 during an exercise that does not settle within 10 minutes of stopping',
+  ],
+  restrictions: [
+    { title: 'Traction', items: ['Keep the pull gentle and steady, and ease off the tension if you feel any increase in symptoms.', 'Relax and breathe. Do not tense or brace against the band.'] },
+    { title: 'General', items: ['Move slowly and stay within a pain-free range. Keep your spine long and do not force any rotation or extension.', 'If an exercise increases your pain or sends symptoms down your leg, back off and let Kelly know.'] },
+  ],
+};
+
+// =====================================================================
+// ============  END OF DATA BLOCK  -  DO NOT EDIT BELOW  ==============
+// =====================================================================
+
+// State
+let hepLog = {};          // all check / log / notes data, flat keys
+let completedDays = [];    // 'YYYY-MM-DD' days the DAILY section was completed
+let history = [];          // session history entries
+let poolRound = 1;         // current rotation round (rotations done = poolRound - 1)
+
+// Storage keys are namespaced per client, so two patient files opened from
+// the same place (or the same github.io account) never share check state.
+const STORE_NS = 'oc_hep_' + CLIENT_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+const K = {
+  log:     STORE_NS + '_log',
+  days:    STORE_NS + '_days',
+  history: STORE_NS + '_history',
+  round:   STORE_NS + '_round',
+  start:   STORE_NS + '_start',
+};
+
+try {
+  const a = localStorage.getItem(K.log);     if (a) hepLog = JSON.parse(a);
+  const b = localStorage.getItem(K.days);    if (b) completedDays = JSON.parse(b);
+  const c = localStorage.getItem(K.history); if (c) history = JSON.parse(c);
+  const d = localStorage.getItem(K.round);   if (d) poolRound = JSON.parse(d);
+} catch(e) {}
+
+function saveAll() {
+  try {
+    localStorage.setItem(K.log, JSON.stringify(hepLog));
+    localStorage.setItem(K.days, JSON.stringify(completedDays));
+    localStorage.setItem(K.history, JSON.stringify(history));
+    localStorage.setItem(K.round, JSON.stringify(poolRound));
+  } catch(e) {}
+}
+
+// ---------- NAVIGATION ----------
+function showHome() {
+  document.getElementById('splash').style.display = 'flex';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('bottom-nav').style.display = 'none';
+}
+function showPage(id) {
+  document.getElementById('splash').style.display = 'none';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const pg = document.getElementById('page-' + id);
+  if (pg) pg.classList.add('active');
+  document.getElementById('bottom-nav').style.display = 'flex';
+  if (id === 'program') renderToday();
+  if (id === 'goals') renderGoals();
+  if (id === 'precautions') renderPrecautions();
+  if (id === 'report') renderReport();
+  window.scrollTo(0, 0);
+}
+function showProgramTab(tab) {
+  document.getElementById('today-tab').style.display = tab === 'today' ? 'block' : 'none';
+  document.getElementById('progress-tab').style.display = tab === 'progress' ? 'block' : 'none';
+  document.getElementById('tab-today').classList.toggle('active', tab === 'today');
+  document.getElementById('tab-progress').classList.toggle('active', tab === 'progress');
+  if (tab === 'today') renderToday();
+  if (tab === 'progress') renderProgress();
+}
+
+// ---------- SECTION HELPERS ----------
+function sectionData(section) { return section === 'daily' ? dailyExercises : poolExercises; }
+function sectionPrefix(section) {
+  return section === 'daily' ? ('d-' + todayKey()) : ('p-r' + poolRound);
+}
+function exKey(section, idx)    { return sectionPrefix(section) + '-ex' + idx; }
+function checkKey(section, idx) { return exKey(section, idx) + '-done'; }
+function notesKey(section, idx) { return exKey(section, idx) + '-notes'; }
+function isDone(section, idx)   { return !!hepLog[checkKey(section, idx)]; }
+function doneCount(section) {
+  let n = 0;
+  sectionData(section).forEach((ex, i) => { if (isDone(section, i)) n++; });
+  return n;
+}
+
+// ---------- TODAY (HEP) ----------
+function renderToday() {
+  document.getElementById('client-name-hero').textContent = CLIENT_NAME;
+  document.getElementById('daily-intro').textContent = dailyIntro;
+  document.getElementById('daily-list').innerHTML = sectionData('daily').map((ex, i) => exerciseCard('daily', i, ex)).join('');
+  updateProgress('daily');
+  document.getElementById('session-notes').value = hepLog['s-' + todayKey() + '-notes'] || '';
+}
+
+function exerciseCard(section, idx, ex) {
+  const done = isDone(section, idx);
+  const sets = hepLog[exKey(section, idx)] || [{}];
+  const notes = hepLog[notesKey(section, idx)] || '';
+  const cid = section + '-' + idx;
+  return `<div class="exercise-card ${done ? 'done-card' : ''}" id="card-${cid}">
+    <div class="exercise-header">
+      <div class="ex-check ${done ? 'done' : ''}" id="check-${cid}" onclick="toggleCheck('${section}',${idx})"></div>
+      <div class="exercise-info" onclick="toggleExercise('${cid}')">
+        <div class="exercise-name">${ex.name}</div>
+        <div class="exercise-meta">${ex.rx}</div>
+      </div>
+      <span class="exercise-chevron" onclick="toggleExercise('${cid}')">&#9660;</span>
+    </div>
+    <div class="exercise-body">
+      ${ex.video ? `<div class="exercise-video"><video src="${ex.video}?v=2" autoplay muted loop playsinline preload="metadata"></video></div>` : ''}
+      <div class="cue-box"><h5>Coaching Cues</h5><ul>${ex.cues.map(c => `<li>${c}</li>`).join('')}</ul></div>
+      ${ex.log ? renderLogBlock(section, idx, sets) : ''}
+      <textarea class="notes-input" placeholder="Notes on this exercise..." onchange="saveExNotes('${section}',${idx},this.value)">${notes}</textarea>
+    </div>
+  </div>`;
+}
+function renderLogBlock(section, idx, sets) {
+  return `<div class="log-section">
+    <h5>Log Sets, Reps &amp; Load</h5>
+    <div class="log-col-headers"><span></span><span>Reps</span><span>Load</span></div>
+    <div id="sets-${section}-${idx}">${sets.map((s, si) => renderSetRow(section, idx, si, s)).join('')}</div>
+    <button class="add-set-btn" onclick="addSet('${section}',${idx})">+ Add Set</button>
+  </div>`;
+}
+function renderSetRow(section, idx, si, s) {
+  return `<div class="set-row">
+    <span class="set-label">Set ${si + 1}</span>
+    <input class="log-input" type="number" inputmode="numeric" placeholder="Reps" value="${s.reps || ''}" onchange="saveSet('${section}',${idx},${si},'reps',this.value)">
+    <input class="log-input" type="text" placeholder="lbs / band" value="${s.load || ''}" onchange="saveSet('${section}',${idx},${si},'load',this.value)">
+  </div>`;
+}
+function toggleExercise(cid) { document.getElementById('card-' + cid)?.classList.toggle('open'); }
+
+function toggleCheck(section, idx) {
+  const k = checkKey(section, idx);
+  hepLog[k] = !hepLog[k];
+  const done = !!hepLog[k];
+  document.getElementById('check-' + section + '-' + idx)?.classList.toggle('done', done);
+  document.getElementById('card-' + section + '-' + idx)?.classList.toggle('done-card', done);
+  updateProgress(section);
+  if (section === 'daily') checkDailyComplete();
+  if (section === 'pool') maybeOfferReset();
+  syncTodayHistory();
+  saveAll();
+}
+function addSet(section, idx) {
+  const k = exKey(section, idx);
+  if (!hepLog[k]) hepLog[k] = [{}];
+  hepLog[k].push({});
+  document.getElementById('sets-' + section + '-' + idx)
+    .insertAdjacentHTML('beforeend', renderSetRow(section, idx, hepLog[k].length - 1, {}));
+  saveAll();
+}
+function saveSet(section, idx, si, field, val) {
+  const k = exKey(section, idx);
+  if (!hepLog[k]) hepLog[k] = [];
+  if (!hepLog[k][si]) hepLog[k][si] = {};
+  hepLog[k][si][field] = val;
+  saveAll();
+}
+function saveExNotes(section, idx, val) { hepLog[notesKey(section, idx)] = val; saveAll(); }
+function saveSessionNotes() {
+  const date = todayKey();
+  hepLog['s-' + date + '-notes'] = document.getElementById('session-notes').value;
+  syncTodayHistory();
+  saveAll();
+}
+
+function updateProgress(section) {
+  const total = sectionData(section).length;
+  const done = doneCount(section);
+  const el = document.getElementById(section + '-progress');
+  if (!el) return;
+  if (section === 'daily') {
+    el.textContent = done + ' of ' + total + ' done today';
+    el.classList.toggle('complete', done === total && total > 0);
+  } else {
+    if (done === total && total > 0) {
+      el.textContent = 'Rotation complete. Tap to start a new round';
+      el.classList.add('complete');
+    } else {
+      el.textContent = done + ' of ' + total + ' this rotation';
+      el.classList.remove('complete');
+    }
+  }
+}
+
+// ---------- AUTO-COMPLETE THE DAY ----------
+function checkDailyComplete() {
+  const total = dailyExercises.length;
+  if (total > 0 && doneCount('daily') === total) {
+    const date = todayKey();
+    if (!completedDays.includes(date)) {
+      completedDays.push(date);
+      upsertTodayHistory();
+      saveAll();
+      showToast('Daily program complete. Day logged, keep the streak going!');
+    }
+  }
+}
+function upsertTodayHistory() {
+  const date = todayKey();
+  history = history.filter(h => h.date !== date);
+  history.push({
+    date: date,
+    dailyDone: doneCount('daily'), dailyTotal: dailyExercises.length,
+    poolDone: doneCount('pool'), poolTotal: poolExercises.length,
+    round: poolRound,
+    notes: hepLog['s-' + date + '-notes'] || ''
+  });
+}
+
+function syncTodayHistory() {
+  const date = todayKey();
+  history = history.filter(h => h.date !== date);
+  if (doneCount('daily') > 0 || doneCount('pool') > 0) {
+    history.push({
+      date: date,
+      dailyDone: doneCount('daily'), dailyTotal: dailyExercises.length,
+      poolDone: doneCount('pool'), poolTotal: poolExercises.length,
+      round: poolRound,
+      notes: hepLog['s-' + date + '-notes'] || ''
+    });
+  }
+}
+
+// ---------- ROTATION RESET ----------
+function maybeOfferReset() {
+  if (poolExercises.length > 0 && doneCount('pool') === poolExercises.length) {
+    document.getElementById('reset-overlay').style.display = 'flex';
+  }
+}
+function poolProgressTap() {
+  if (poolExercises.length > 0 && doneCount('pool') === poolExercises.length) {
+    document.getElementById('reset-overlay').style.display = 'flex';
+  }
+}
+function confirmPoolReset() {
+  poolRound++;   // rotations completed = poolRound - 1
+  document.getElementById('reset-overlay').style.display = 'none';
+  saveAll();
+  renderToday();
+  showToast('New rotation started. Fresh list ready.');
+}
+function cancelPoolReset() {
+  document.getElementById('reset-overlay').style.display = 'none';
+}
+
+// ---------- PROGRESS ----------
+function renderProgress() {
+  const c = document.getElementById('progress-tab');
+  const s = computeStreaks();
+  const rotations = poolRound - 1;
+  let html = `<div class="streak-row">
+    <div class="streak-stat"><div class="streak-num">${s.cur}</div><div class="streak-lbl">Day Streak</div></div>
+    <div class="streak-stat"><div class="streak-num">${s.best}</div><div class="streak-lbl">Best Streak</div></div>
+    <div class="streak-stat"><div class="streak-num">${s.total}</div><div class="streak-lbl">Days Done</div></div>
+    ${poolExercises.length ? `<div class="streak-stat"><div class="streak-num">${rotations}</div><div class="streak-lbl">Rotations</div></div>` : ''}
+  </div>`;
+  html += `<div class="section-label">Daily Consistency</div>`;
+  html += buildGrid();
+  html += `<div class="grid-legend"><span class="lg-cell" style="background:var(--dark);"></span> Missed
+    <span class="lg-cell" style="background:linear-gradient(135deg,var(--gold-dark),var(--gold));margin-left:8px;"></span> Done
+    <span class="lg-cell" style="background:rgba(255,255,255,0.025);border:1px dashed rgba(201,168,76,0.4);margin-left:8px;"></span> Upcoming</div>`;
+
+  html += `<div class="section-label">Session History</div>`;
+  if (!history.length) {
+    html += `<div class="empty-state"><p>No sessions logged yet.<br>Finish your Daily exercises and the day logs itself.</p></div>`;
+  } else {
+    const sorted = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
+    html += sorted.map(h => `<div class="history-card">
+      <div class="history-date">${formatDate(h.date)}</div>
+      <div class="history-title">${h.poolTotal ? `Daily ${h.dailyDone}/${h.dailyTotal} &nbsp;&middot;&nbsp; Rotation ${h.poolDone}/${h.poolTotal}` : `${h.dailyDone}/${h.dailyTotal} done`}</div>
+      ${h.notes ? `<div class="history-note">${h.notes}</div>` : ''}
+    </div>`).join('');
+  }
+
+  html += `<button class="save-btn" style="margin-top:14px;" onclick="toggleExerciseLogs()" id="logs-btn">&#128221; View Exercise Logs</button>`;
+  html += `<div id="exercise-logs" style="display:none;margin-top:12px;"></div>`;
+  c.innerHTML = html;
+}
+
+function toggleExerciseLogs() {
+  const box = document.getElementById('exercise-logs');
+  const btn = document.getElementById('logs-btn');
+  if (box.style.display === 'none') {
+    box.innerHTML = buildExerciseLogs();
+    box.style.display = 'block';
+    btn.innerHTML = '&#128221; Hide Exercise Logs';
+  } else {
+    box.style.display = 'none';
+    btn.innerHTML = '&#128221; View Exercise Logs';
+  }
+}
+function buildExerciseLogs() {
+  const daily = [], rot = [];
+  Object.keys(hepLog).forEach(k => {
+    let m;
+    if ((m = k.match(/^d-(\d{4}-\d{2}-\d{2})-ex(\d+)$/))) {
+      const ex = dailyExercises[+m[2]]; const sets = hepLog[k];
+      if (ex && Array.isArray(sets) && sets.some(s => s.reps || s.load))
+        daily.push({ sort: m[1], when: formatDate(m[1]), name: ex.name, sets: sets });
+    } else if ((m = k.match(/^p-r(\d+)-ex(\d+)$/))) {
+      const ex = poolExercises[+m[2]]; const sets = hepLog[k];
+      if (ex && Array.isArray(sets) && sets.some(s => s.reps || s.load))
+        rot.push({ sort: +m[1], when: 'Rotation round ' + m[1], name: ex.name, sets: sets });
+    }
+  });
+  daily.sort((a, b) => a.sort < b.sort ? 1 : -1);
+  rot.sort((a, b) => b.sort - a.sort);
+  if (!daily.length && !rot.length)
+    return `<div class="empty-state"><p>No exercise logs yet.<br>Logged reps and loads will appear here.</p></div>`;
+  const row = e => `<div class="log-entry">
+    <div class="le-when">${e.when}</div>
+    <div class="le-head">${e.name}</div>
+    ${e.sets.filter(s => s.reps || s.load).map((s, i) =>
+      `<div class="le-set">Set ${i + 1}: ${s.reps || '-'} reps &nbsp;&middot;&nbsp; ${s.load || '-'}</div>`).join('')}
+  </div>`;
+  let out = '';
+  if (daily.length) out += `<div class="section-label">Daily Logs</div>` + daily.map(row).join('');
+  if (rot.length)   out += `<div class="section-label">Rotation Logs</div>` + rot.map(row).join('');
+  return out;
+}
+
+function buildGrid() {
+  // Forward-looking grid: each column is one calendar week, Sunday (top)
+  // to Saturday (bottom). The first column is always the full Sun-Sat
+  // week containing the start date, so any days before the patient
+  // started appear as plain gray cells. Week 1 never looks like week 2.
+  // Today is ringed; days after today show as dashed "upcoming" cells.
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  const startStr = localStorage.getItem(K.start);
+  const startD = startStr ? new Date(startStr + 'T12:00:00') : new Date(today);
+  const startSun = new Date(startD);
+  startSun.setDate(startD.getDate() - startD.getDay());
+  const weeksElapsed = Math.floor((today - startSun) / (7 * 86400000));
+  const WEEKS = Math.max(12, weeksElapsed + 5);
+  const doneSet = new Set(completedDays);
+  const tKey = keyOf(today);
+  let cols = '';
+  for (let w = 0; w < WEEKS; w++) {
+    let cells = '';
+    for (let d = 0; d < 7; d++) {
+      const cell = new Date(startSun);
+      cell.setDate(startSun.getDate() + w * 7 + d);
+      const k = keyOf(cell);
+      let cls = 'grid-cell';
+      if (doneSet.has(k)) cls += ' done';
+      else if (cell > today) cls += ' future';
+      if (k === tKey) cls += ' today';
+      cells += `<div class="${cls}"></div>`;
+    }
+    cols += `<div class="grid-col">${cells}</div>`;
+  }
+  return `<div class="grid-wrap"><div class="grid-inner">
+    <div class="grid-daylabels"><span>S</span><span>M</span><span>T</span><span>W</span><span>R</span><span>F</span><span>S</span></div>
+    ${cols}
+  </div></div>`;
+}
+
+function computeStreaks() {
+  const set = new Set(completedDays);
+  let cur = 0;
+  let d = new Date(); d.setHours(12, 0, 0, 0);
+  if (!set.has(keyOf(d))) d.setDate(d.getDate() - 1);
+  while (set.has(keyOf(d))) { cur++; d.setDate(d.getDate() - 1); }
+  const sorted = [...set].sort();
+  let best = 0, run = 0, prev = null;
+  sorted.forEach(ds => {
+    if (prev && dayGap(prev, ds) === 1) run++; else run = 1;
+    if (run > best) best = run;
+    prev = ds;
+  });
+  return { cur, best, total: set.size };
+}
+
+// ---------- GOALS / PRECAUTIONS ----------
+function renderGoals() {
+  document.getElementById('client-name-hero').textContent = CLIENT_NAME;
+  document.getElementById('goals-list').innerHTML = goals.map((g, i) => `<div class="goal-item">
+    <span class="goal-number">${String(i + 1).padStart(2, '0')}</span>
+    <div class="goal-text"><h4>${g.title}</h4><p>${g.desc}</p></div>
+  </div>`).join('');
+  document.getElementById('philosophy-text').textContent = philosophy;
+}
+function renderPrecautions() {
+  document.getElementById('redflags-list').innerHTML = precautions.redFlags.map(f => `<li>${f}</li>`).join('');
+  document.getElementById('restrictions-list').innerHTML = precautions.restrictions.map(r => `
+    <div class="section-label">${r.title}</div>
+    <div class="precaution-card yellow"><h4>${r.title}</h4><ul>${r.items.map(i => `<li>${i}</li>`).join('')}</ul></div>
+  `).join('');
+}
+
+// ---------- PRINTABLE LOG REPORT ----------
+function renderReport() {
+  const logo = document.querySelector('#splash img').src;
+  const s = computeStreaks();
+  const sorted = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
+  let h = `<img class="rep-logo" src="${logo}" alt="OrthoCare Concierge">
+    <div class="rep-title">Home Exercise Program Log</div>
+    <div class="rep-client">${CLIENT_NAME}</div>
+    <div class="rep-sub">Prepared for Kelly Davis, PT &nbsp;&middot;&nbsp; ${formatDate(todayKey())}</div>
+    <div class="rep-rule"></div>
+    <div class="rep-stats">
+      <div class="rep-stat"><b>${s.cur}</b><span>Day Streak</span></div>
+      <div class="rep-stat"><b>${s.best}</b><span>Best Streak</span></div>
+      <div class="rep-stat"><b>${s.total}</b><span>Days Done</span></div>
+      ${poolExercises.length ? `<div class="rep-stat"><b>${poolRound - 1}</b><span>Rotations</span></div>` : ''}
+    </div>
+    <div class="rep-h">Session History</div>`;
+  if (!sorted.length) {
+    h += `<div class="rep-line" style="color:#8A8270;">No sessions logged yet.</div>`;
+  } else {
+    sorted.forEach(e => {
+      h += `<div class="rep-item">
+        <div class="rep-when">${formatDate(e.date)}</div>
+        <div class="rep-line">${e.poolTotal ? `Daily ${e.dailyDone}/${e.dailyTotal} &nbsp;&middot;&nbsp; Rotation ${e.poolDone}/${e.poolTotal}` : `${e.dailyDone}/${e.dailyTotal} exercises`}</div>
+        ${e.notes ? `<div class="rep-note">&ldquo;${e.notes}&rdquo;</div>` : ''}
+      </div>`;
+    });
+  }
+  const logs = buildReportLogs();
+  if (logs) h += `<div class="rep-h">Exercise Logs</div>` + logs;
+  h += `<div class="rep-foot">OrthoCare Concierge LLC, Kelly Davis<br>Proprietary &amp; Confidential</div>`;
+  document.getElementById('print-area').innerHTML = h;
+}
+function buildReportLogs() {
+  const rows = [];
+  Object.keys(hepLog).forEach(k => {
+    let m;
+    if ((m = k.match(/^d-(\d{4}-\d{2}-\d{2})-ex(\d+)$/))) {
+      const ex = dailyExercises[+m[2]], sets = hepLog[k];
+      if (ex && Array.isArray(sets) && sets.some(x => x.reps || x.load))
+        rows.push({ sort: m[1], when: formatDate(m[1]), name: ex.name, sets: sets });
+    } else if ((m = k.match(/^p-r(\d+)-ex(\d+)$/))) {
+      const ex = poolExercises[+m[2]], sets = hepLog[k];
+      if (ex && Array.isArray(sets) && sets.some(x => x.reps || x.load))
+        rows.push({ sort: 'z' + String(m[1]).padStart(5, '0'), when: 'Rotation round ' + m[1], name: ex.name, sets: sets });
+    }
+  });
+  if (!rows.length) return '';
+  rows.sort((a, b) => a.sort < b.sort ? 1 : -1);
+  return rows.map(e => `<div class="rep-item">
+    <div class="rep-when">${e.when}</div>
+    <div class="rep-line" style="font-weight:500;">${e.name}</div>
+    ${e.sets.filter(s => s.reps || s.load).map((s, i) =>
+      `<div class="rep-line" style="font-size:11.5px;color:#6B6356;">Set ${i + 1}: ${s.reps || '-'} reps &nbsp;&middot;&nbsp; ${s.load || '-'}</div>`).join('')}
+  </div>`).join('');
+}
+
+// ---------- EXPORT (text fallback) ----------
+function exportLog() {
+  if (!history.length) { showToast('Nothing to send yet. Finish a daily session first.'); return; }
+  const sorted = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
+  let text = `ORTHOCARE CONCIERGE LLC | Kelly Davis\nHOME EXERCISE PROGRAM LOG\n${CLIENT_NAME}\n${'='.repeat(40)}\n\n`;
+  const s = computeStreaks();
+  text += `Current streak: ${s.cur} days | Best: ${s.best} | Days done: ${s.total} | Rotations: ${poolRound - 1}\n\n`;
+  sorted.slice(0, 21).forEach(h => {
+    text += `${formatDate(h.date)}\n  Daily: ${h.dailyDone} of ${h.dailyTotal} | Rotation: ${h.poolDone} of ${h.poolTotal}\n`;
+    if (h.notes) text += `  Notes: ${h.notes}\n`;
+    text += '\n';
+  });
+  text += `${'='.repeat(40)}\nPROPRIETARY - OrthoCare Concierge LLC | Kelly Davis\n`;
+  if (navigator.share) {
+    navigator.share({ title: CLIENT_NAME + ' HEP Log', text: text }).catch(() => copyToClipboard(text));
+  } else { copyToClipboard(text); }
+}
+function copyToClipboard(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('Copied - paste it into a message to Kelly'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('Copied - paste it into a message to Kelly');
+  }
+}
+
+// ---------- UTILITIES ----------
+function todayKey() { return keyOf(new Date()); }
+function keyOf(d) {
+  const x = new Date(d);
+  return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+}
+function dayGap(a, b) {
+  return Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 86400000);
+}
+function formatDate(d) {
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ---------- INIT ----------
+// Record the patient's program start date on first ever launch.
+if (!localStorage.getItem(K.start)) {
+  try { localStorage.setItem(K.start, todayKey()); } catch(e) {}
+}
+document.getElementById('client-name-hero').textContent = CLIENT_NAME;
+document.title = CLIENT_NAME + ' | OrthoCare Concierge';
+</script>
+</body>
+</html>
