@@ -681,7 +681,7 @@ function exerciseCard(section, idx, ex) {
       <span class="exercise-chevron" onclick="toggleExercise('${cid}')">&#9660;</span>
     </div>
     <div class="exercise-body">
-      ${ex.video ? `<div class="exercise-video"><video src="${ex.video}?v=2" autoplay muted loop playsinline preload="metadata"></video></div>` : ''}
+      ${ex.video ? `<div class="exercise-video"><video src="${ex.video}?v=3" autoplay muted loop playsinline preload="metadata"></video></div>` : ''}
       <div class="cue-box"><h5>Coaching Cues</h5><ul>${ex.cues.map(c => `<li>${c}</li>`).join('')}</ul></div>
       ${ex.log ? renderLogBlock(section, idx, sets) : ''}
       <textarea class="notes-input" placeholder="Notes on this exercise..." onchange="saveExNotes('${section}',${idx},this.value)">${notes}</textarea>
